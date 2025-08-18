@@ -1,0 +1,99 @@
+{
+  "project_info": {
+    "project_number": "732435336093",
+    "firebase_url": "https://oito-ffe47-default-rtdb.firebaseio.com",
+    "project_id": "oito-ffe47",
+    "storage_bucket": "oito-ffe47.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:732435336093:android:b1eecd0283cd6da4aebd74",
+        "android_client_info": {
+          "package_name": "com.example.novo9oito_motorista"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "732435336093-0u4a9fbfdb5paqolcvim5ph5i1c6qghc.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.novo9oito_motorista",
+            "certificate_hash": "12b417aa00a86ec66f9675eefc3ca86945f9e359"
+          }
+        },
+        {
+          "client_id": "732435336093-k05fa4e0qfbbabbhu37ires5f86h8tur.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAHc356ZIm9GF1NAuvAG5MeyvRvPCTzLEs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "732435336093-k05fa4e0qfbbabbhu37ires5f86h8tur.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "732435336093-e5bs6guaea4a334f7vs1k62o61kir26u.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.novo9oito"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:732435336093:android:0660011d66cf96aeaebd74",
+        "android_client_info": {
+          "package_name": "com.example.novo9oito_new"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "732435336093-cm5ik4j8677kq8d2gc2qn85uq9oq8lg8.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.novo9oito_new",
+            "certificate_hash": "12b417aa00a86ec66f9675eefc3ca86945f9e359"
+          }
+        },
+        {
+          "client_id": "732435336093-k05fa4e0qfbbabbhu37ires5f86h8tur.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAHc356ZIm9GF1NAuvAG5MeyvRvPCTzLEs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "732435336093-k05fa4e0qfbbabbhu37ires5f86h8tur.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "732435336093-e5bs6guaea4a334f7vs1k62o61kir26u.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.novo9oito"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
