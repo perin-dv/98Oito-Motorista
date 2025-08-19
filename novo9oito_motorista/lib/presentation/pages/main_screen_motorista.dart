@@ -45,11 +45,6 @@ class _MainScreenMotoristaState extends State<MainScreenMotorista> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Olá, $_userName'),
-        backgroundColor: const Color(0xFF6A4C93),
-        foregroundColor: Colors.white,
-      ),
       body: _pages[_currentIndex],
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,

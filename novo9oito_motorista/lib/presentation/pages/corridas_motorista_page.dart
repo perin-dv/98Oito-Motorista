@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:intl/intl.dart';
 
+import '../../data/models/corrida_model.dart';
 import 'corrida_em_andamento_page.dart';
 
 class CorridasMotoristaPage extends StatefulWidget {
@@ -62,7 +63,9 @@ class _CorridasMotoristaPageState extends State<CorridasMotoristaPage> with Tick
   @override
 
   void _carregarCorridasHoje() {
-    final uid = FirebaseAuth.instance.currentUser!.uid;
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+    
     final hoje = DateFormat('yyyy-MM-dd').format(DateTime.now());
 
     FirebaseDatabase.instance
@@ -73,16 +76,65 @@ class _CorridasMotoristaPageState extends State<CorridasMotoristaPage> with Tick
         .listen((event) {
       final data = event.snapshot.value;
       if (data != null && data is Map) {
-        final corridasFiltradas = data.entries
-            .map((e) => Map<String, dynamic>.from(e.value))
-            .where((corrida) => corrida['data'] == hoje)
-            .toList();
+        final corridasFiltradas = <Map<String, dynamic>>[];
+        
+        data.forEach((key, value) {
+          if (value is Map) {
+            final corrida = Map<String, dynamic>.from(value);
+            
+            // Verificar se a corrida é de hoje
+            final corridaData = corrida['criadoEm'] ?? corrida['data'];
+            if (corridaData != null) {
+              DateTime? corridaDate;
+              
+              // Tentar diferentes formatos de data
+              if (corridaData is String) {
+                if (corridaData.contains('T')) {
+                  // Formato ISO
+                  corridaDate = DateTime.tryParse(corridaData);
+                } else if (corridaData.contains('-')) {
+                  // Formato yyyy-MM-dd
+                  corridaDate = DateTime.tryParse(corridaData);
+                }
+              } else if (corridaData is int) {
+                // Timestamp
+                corridaDate = DateTime.fromMillisecondsSinceEpoch(corridaData);
+              }
+              
+              if (corridaDate != null) {
+                final corridaDataFormatada = DateFormat('yyyy-MM-dd').format(corridaDate);
+                if (corridaDataFormatada == hoje && corrida['status'] == 'finalizada') {
+                  // Adicionar dados padrão se não existirem
+                  corrida['id'] = key;
+                  corrida['passageiro'] = corrida['passageiroNome'] ?? corrida['nomePassageiro'] ?? 'Passageiro';
+                  corrida['origem'] = corrida['origemDescricao'] ?? corrida['origem']?['endereco'] ?? 'Origem';
+                  corrida['destino'] = corrida['destinoDescricao'] ?? corrida['destino']?['endereco'] ?? 'Destino';
+                  corrida['valor'] = (corrida['valor'] ?? 0).toDouble();
+                  corrida['avaliacao'] = corrida['avaliacao'] ?? 5;
+                  corrida['tempo'] = _formatarTempo(corridaDate);
+                  corrida['distancia'] = corrida['distancia'] ?? '5.2 km';
+                  corrida['categoria'] = corrida['categoria'] ?? 'Pop';
+                  
+                  corridasFiltradas.add(corrida);
+                }
+              }
+            }
+          }
+        });
 
         setState(() {
           _corridasHoje = corridasFiltradas;
         });
+      } else {
+        setState(() {
+          _corridasHoje = [];
+        });
       }
     });
+  }
+  
+  String _formatarTempo(DateTime dataHora) {
+    return DateFormat('HH:mm').format(dataHora);
   }
 
 
@@ -621,6 +673,16 @@ class _CorridasMotoristaPageState extends State<CorridasMotoristaPage> with Tick
     );
   }
 
+  double _asDouble(dynamic v) {
+    if (v is num) return v.toDouble();
+    if (v is String) return double.tryParse(v.replaceAll(',', '.')) ?? 0.0;
+    return 0.0;
+  }
+
+  LatLng _latLngFrom(dynamic lat, dynamic lng) =>
+      LatLng(_asDouble(lat), _asDouble(lng));
+
+
   void _mostrarDetalhesCorrida(Map<String, dynamic> corrida) {
     showDialog(
       context: context,
@@ -646,17 +708,35 @@ class _CorridasMotoristaPageState extends State<CorridasMotoristaPage> with Tick
         actions: [
           TextButton(
             onPressed: () {
+              final origem = _latLngFrom(
+                corrida['origemLat'] ?? corrida['origem']?['lat'],
+                corrida['origemLng'] ?? corrida['origem']?['lng'],
+              );
+
+              final destino = _latLngFrom(
+                corrida['destinoLat'] ?? corrida['destino']?['lat'],
+                corrida['destinoLng'] ?? corrida['destino']?['lng'],
+              );
+
+              final nome = (corrida['passageiroNome'] ?? corrida['nomePassageiro'] ?? 'Passageiro').toString();
+              final valor = _asDouble(corrida['valor']);
+
               Navigator.push(
                 context,
                 MaterialPageRoute(
                   builder: (_) => CorridaEmAndamentoPage(
-                    corridaId: corrida['id'], motoristaId: '', // aqui você pega o id salvo no Map
+                    corridaId: corrida['id'],
+                    origem: origem,
+                    destino: destino,
+                    nomePassageiro: nome,
+                    valorCorrida: valor,
                   ),
                 ),
               );
             },
             child: const Text('Ver detalhes'),
-          ),
+          )
+
 
 
         ],

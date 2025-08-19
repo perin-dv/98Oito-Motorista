@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:intl/intl.dart';
 
+import '../../data/models/corrida_model.dart';
 import 'corrida_em_andamento_page.dart';
 
 class CorridasMotoristaPage extends StatefulWidget {
@@ -621,6 +622,16 @@ class _CorridasMotoristaPageState extends State<CorridasMotoristaPage> with Tick
     );
   }
 
+  double _asDouble(dynamic v) {
+    if (v is num) return v.toDouble();
+    if (v is String) return double.tryParse(v.replaceAll(',', '.')) ?? 0.0;
+    return 0.0;
+  }
+
+  LatLng _latLngFrom(dynamic lat, dynamic lng) =>
+      LatLng(_asDouble(lat), _asDouble(lng));
+
+
   void _mostrarDetalhesCorrida(Map<String, dynamic> corrida) {
     showDialog(
       context: context,
@@ -646,28 +657,35 @@ class _CorridasMotoristaPageState extends State<CorridasMotoristaPage> with Tick
         actions: [
           TextButton(
             onPressed: () {
+              final origem = _latLngFrom(
+                corrida['origemLat'] ?? corrida['origem']?['lat'],
+                corrida['origemLng'] ?? corrida['origem']?['lng'],
+              );
+
+              final destino = _latLngFrom(
+                corrida['destinoLat'] ?? corrida['destino']?['lat'],
+                corrida['destinoLng'] ?? corrida['destino']?['lng'],
+              );
+
+              final nome = (corrida['passageiroNome'] ?? corrida['nomePassageiro'] ?? 'Passageiro').toString();
+              final valor = _asDouble(corrida['valor']);
+
               Navigator.push(
                 context,
                 MaterialPageRoute(
                   builder: (_) => CorridaEmAndamentoPage(
-                    corridaId: corrida['id'], // vem do Firebase
-                    origem: LatLng(
-                      corrida['origemLat'],
-                      corrida['origemLng'],
-                    ),
-                    destino: LatLng(
-                      corrida['destinoLat'],
-                      corrida['destinoLng'],
-                    ),
-                    nomePassageiro: corrida['passageiro'],
-                    valorCorrida: corrida['valor'],
+                    corridaId: corrida['id'],
+                    origem: origem,
+                    destino: destino,
+                    nomePassageiro: nome,
+                    valorCorrida: valor,
                   ),
                 ),
               );
-
             },
             child: const Text('Ver detalhes'),
-          ),
+          )
+
 
 
         ],

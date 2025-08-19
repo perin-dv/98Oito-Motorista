@@ -2,7 +2,8 @@
 class Assets {
   Assets._();
 
-  static const String imagesChatGPT = 'assets/images/arrow_icon.png';
+  static const String imagesArrowIcon = 'assets/images/arrow_icon.png';
+
   static const String imagesLogo = 'assets/images/logo.png';
 
 }

@@ -33,6 +33,10 @@ class _CadastroMotoristaPageState extends State<CadastroMotoristaPage> {
   final _placaVeiculoController = TextEditingController();
   final _corVeiculoController = TextEditingController();
 
+  // Categoria de serviço
+  String _categoriaServico = '99Pop';
+  final List<String> _categoriasDisponiveis = ['99Pop', 'Executivo'];
+
   bool _isLoading = false;
   int _currentStep = 0;
 
@@ -138,12 +142,14 @@ class _CadastroMotoristaPageState extends State<CadastroMotoristaPage> {
         "cnh": _cnhController.text.trim(),
         "tipo": "motorista",
         "status": "pendente_aprovacao",
+        "categoriaServico": _categoriaServico, // Adicionando categoria
         "veiculo": {
           "marca": _marcaVeiculoController.text.trim(),
           "modelo": _modeloVeiculoController.text.trim(),
           "ano": _anoVeiculoController.text.trim(),
           "placa": _placaVeiculoController.text.trim(),
           "cor": _corVeiculoController.text.trim(),
+          "categoria": _categoriaServico, // Categoria também no veículo
         },
         "documentos": {
           "cnh": "pendente",
@@ -302,6 +308,97 @@ class _CadastroMotoristaPageState extends State<CadastroMotoristaPage> {
                   title: const Text("Veículo"),
                   content: Column(
                     children: [
+                      // Categoria de serviço
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        margin: const EdgeInsets.only(bottom: 16),
+                        decoration: BoxDecoration(
+                          color: Colors.orange[50],
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.orange[200]!),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(Icons.star, color: Colors.orange),
+                                const SizedBox(width: 8),
+                                const Text(
+                                  'Categoria de Serviço',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            DropdownButtonFormField<String>(
+                              value: _categoriaServico,
+                              decoration: const InputDecoration(
+                                border: OutlineInputBorder(),
+                                filled: true,
+                                fillColor: Colors.white,
+                              ),
+                              items: _categoriasDisponiveis.map((categoria) {
+                                return DropdownMenuItem(
+                                  value: categoria,
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        categoria == '99Pop' 
+                                            ? Icons.directions_car 
+                                            : Icons.business_center,
+                                        color: categoria == '99Pop' 
+                                            ? Colors.orange 
+                                            : const Color(0xFF6A4C93),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            categoria,
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          Text(
+                                            categoria == '99Pop' 
+                                                ? 'Corridas econômicas' 
+                                                : 'Corridas premium',
+                                            style: const TextStyle(
+                                              fontSize: 12,
+                                              color: Colors.grey,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              }).toList(),
+                              onChanged: (value) {
+                                setState(() {
+                                  _categoriaServico = value!;
+                                });
+                              },
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              _categoriaServico == '99Pop'
+                                  ? '• Corridas com preço acessível\n• Veículos populares aceitos\n• Maior volume de corridas'
+                                  : '• Corridas premium com preço diferenciado\n• Veículos de luxo ou seminovos\n• Passageiros executivos',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      
                       _campoTexto(_marcaVeiculoController, "Marca do Veículo",
                           Icons.directions_car),
                       _campoTexto(_modeloVeiculoController, "Modelo do Veículo",

@@ -1,4 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_database/firebase_database.dart';
+import 'package:intl/intl.dart';
+import 'saque_page.dart';
+import 'extrato_page.dart';
+import 'ajuda_page.dart';
 
 class CarteiraMotoristaPage extends StatefulWidget {
   const CarteiraMotoristaPage({super.key});
@@ -10,60 +16,115 @@ class CarteiraMotoristaPage extends StatefulWidget {
 class _CarteiraMotoristaPageState extends State<CarteiraMotoristaPage> with TickerProviderStateMixin {
   late TabController _tabController;
   
-  double _saldoDisponivel = 347.80;
-  double _saldoPendente = 89.50;
-  double _totalSemana = 922.40;
+  // Firebase
+  final _auth = FirebaseAuth.instance;
+  final _db = FirebaseDatabase.instance.ref();
   
-  final List<Map<String, dynamic>> _transacoes = [
-    {
-      'tipo': 'ganho',
-      'descricao': 'Corrida #1247',
-      'valor': 18.50,
-      'data': '2024-08-03 18:30',
-      'status': 'concluido',
-    },
-    {
-      'tipo': 'ganho',
-      'descricao': 'Corrida #1246',
-      'valor': 25.00,
-      'data': '2024-08-03 17:45',
-      'status': 'concluido',
-    },
-    {
-      'tipo': 'saque',
-      'descricao': 'Saque PIX',
-      'valor': -200.00,
-      'data': '2024-08-03 14:20',
-      'status': 'concluido',
-    },
-    {
-      'tipo': 'ganho',
-      'descricao': 'Corrida #1245',
-      'valor': 32.80,
-      'data': '2024-08-03 13:15',
-      'status': 'concluido',
-    },
-    {
-      'tipo': 'taxa',
-      'descricao': 'Taxa de serviço',
-      'valor': -3.70,
-      'data': '2024-08-03 12:00',
-      'status': 'concluido',
-    },
-  ];
+  // Dados da carteira
+  double _saldoDisponivel = 0.0;
+  double _saldoPendente = 0.0;
+  double _totalSemana = 0.0;
+  
+  List<Map<String, dynamic>> _transacoes = [];
+  bool _carregando = true;
 
   final List<Map<String, dynamic>> _relatorioSemanal = [
-    {'dia': 'Segunda', 'ganhos': 156.80, 'corridas': 12},
-    {'dia': 'Terça', 'ganhos': 198.50, 'corridas': 15},
-    {'dia': 'Quarta', 'ganhos': 134.20, 'corridas': 10},
-    {'dia': 'Quinta', 'ganhos': 187.30, 'corridas': 14},
-    {'dia': 'Sexta', 'ganhos': 245.60, 'corridas': 18},
+    {'dia': 'Segunda', 'ganhos': 0.0, 'corridas': 0},
+    {'dia': 'Terça', 'ganhos': 0.0, 'corridas': 0},
+    {'dia': 'Quarta', 'ganhos': 0.0, 'corridas': 0},
+    {'dia': 'Quinta', 'ganhos': 0.0, 'corridas': 0},
+    {'dia': 'Sexta', 'ganhos': 0.0, 'corridas': 0},
   ];
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    _carregarDadosCarteira();
+  }
+
+  Future<void> _carregarDadosCarteira() async {
+    final uid = _auth.currentUser?.uid;
+    if (uid == null) return;
+
+    try {
+      // Carregar saldo da carteira
+      final carteiraSnap = await _db.child('carteira_motorista/$uid').get();
+      if (carteiraSnap.exists) {
+        final carteira = Map<String, dynamic>.from(carteiraSnap.value as Map);
+        setState(() {
+          _saldoDisponivel = (carteira['saldo_disponivel'] ?? 0.0).toDouble();
+          _saldoPendente = (carteira['saldo_pendente'] ?? 0.0).toDouble();
+        });
+      }
+
+      // Carregar estatísticas da semana
+      await _carregarEstatisticasSemana();
+      
+      // Carregar transações
+      await _carregarTransacoes();
+
+      setState(() {
+        _carregando = false;
+      });
+    } catch (e) {
+      debugPrint('Erro ao carregar dados da carteira: $e');
+      setState(() {
+        _carregando = false;
+      });
+    }
+  }
+
+  Future<void> _carregarEstatisticasSemana() async {
+    final uid = _auth.currentUser?.uid;
+    if (uid == null) return;
+
+    final now = DateTime.now();
+    double totalSemana = 0.0;
+
+    for (int i = 0; i < 7; i++) {
+      final data = now.subtract(Duration(days: i));
+      final dataKey = DateFormat('yyyy-MM-dd').format(data);
+      
+      final estatSnap = await _db.child('estatisticas_motorista/$uid/$dataKey').get();
+      if (estatSnap.exists) {
+        final estat = Map<String, dynamic>.from(estatSnap.value as Map);
+        final ganhos = (estat['ganhos'] ?? 0.0).toDouble();
+        totalSemana += ganhos;
+      }
+    }
+
+    setState(() {
+      _totalSemana = totalSemana;
+    });
+  }
+
+  Future<void> _carregarTransacoes() async {
+    final uid = _auth.currentUser?.uid;
+    if (uid == null) return;
+
+    final transacoesSnap = await _db.child('transacoes_motorista/$uid')
+        .orderByChild('timestamp')
+        .limitToLast(20)
+        .get();
+
+    if (transacoesSnap.exists) {
+      final transacoes = <Map<String, dynamic>>[];
+      final data = Map<String, dynamic>.from(transacoesSnap.value as Map);
+      
+      data.forEach((key, value) {
+        final transacao = Map<String, dynamic>.from(value);
+        transacao['id'] = key;
+        transacoes.add(transacao);
+      });
+
+      // Ordenar por data (mais recente primeiro)
+      transacoes.sort((a, b) => (b['timestamp'] ?? 0).compareTo(a['timestamp'] ?? 0));
+
+      setState(() {
+        _transacoes = transacoes;
+      });
+    }
   }
 
   @override
@@ -652,62 +713,35 @@ class _CarteiraMotoristaPageState extends State<CarteiraMotoristaPage> with Tick
     );
   }
 
-  void _mostrarDialogSaque() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Sacar Dinheiro'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text('Saldo disponível: R\$ ${_saldoDisponivel.toStringAsFixed(2)}'),
-            const SizedBox(height: 16),
-            const TextField(
-              decoration: InputDecoration(
-                labelText: 'Valor do saque',
-                prefixText: 'R\$ ',
-                border: OutlineInputBorder(),
-              ),
-              keyboardType: TextInputType.number,
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'O valor será transferido via PIX em até 1 hora.',
-              style: TextStyle(fontSize: 12, color: Colors.grey),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Saque solicitado com sucesso!')),
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFFF6600),
-            ),
-            child: const Text('Sacar'),
-          ),
-        ],
+  void _mostrarDialogSaque() async {
+    final resultado = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => SaquePage(saldoDisponivel: _saldoDisponivel),
+      ),
+    );
+    
+    // Se houve alteração, recarregar dados
+    if (resultado == true) {
+      _carregarDadosCarteira();
+    }
+  }
+
+  void _gerarExtrato() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const ExtratoPage(),
       ),
     );
   }
 
-  void _gerarExtrato() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Gerando extrato... Será enviado por email.')),
-    );
-  }
-
   void _mostrarAjuda() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Funcionalidade de ajuda em desenvolvimento')),
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const AjudaPage(),
+      ),
     );
   }
 

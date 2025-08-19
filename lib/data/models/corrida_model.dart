@@ -1,7 +1,7 @@
 class CorridaModel {
   final String id;
   final String passageiroUid;
-  final String? passageiroNome; // ✅ novo campo
+  final String? passageiroNome; // 🔹 nome do passageiro (opcional)
   final String? motoristaUid;
   final String origemDescricao;
   final double origemLat;
@@ -26,8 +26,8 @@ class CorridaModel {
   CorridaModel({
     required this.id,
     required this.passageiroUid,
-    this.passageiroNome, // ✅ agora pode salvar o nome
-    required this.motoristaUid,
+    this.passageiroNome,
+    this.motoristaUid,
     required this.origemDescricao,
     required this.origemLat,
     required this.origemLng,
@@ -45,7 +45,7 @@ class CorridaModel {
     return {
       'id': id,
       'passageiroUid': passageiroUid,
-      'passageiroNome': passageiroNome, // ✅ salva no Firebase
+      'passageiroNome': passageiroNome,
       'motoristaUid': motoristaUid,
       'origemDescricao': origemDescricao,
       'origemLat': origemLat,
@@ -63,21 +63,21 @@ class CorridaModel {
 
   factory CorridaModel.fromMap(Map<dynamic, dynamic> map) {
     return CorridaModel(
-      id: map['id'] as String,
-      passageiroUid: map['passageiroUid'] as String,
-      passageiroNome: map['passageiroNome'] as String?, // ✅ lê do Firebase
-      motoristaUid: map['motoristaUid'] as String?,
-      origemDescricao: map['origemDescricao'] as String,
-      origemLat: (map['origemLat'] as num).toDouble(),
-      origemLng: (map['origemLng'] as num).toDouble(),
-      destinoDescricao: map['destinoDescricao'] as String,
-      destinoLat: (map['destinoLat'] as num).toDouble(),
-      destinoLng: (map['destinoLng'] as num).toDouble(),
-      status: map['status'] as String,
-      codigoRegiao: map['codigoRegiao'] as String,
-      criadoEm: map['criadoEm'] as int,
-      atualizadoEm: map['atualizadoEm'] as int?,
-      valor: (map['valor'] as num).toDouble(),
+      id: map['id']?.toString() ?? '',
+      passageiroUid: map['passageiroUid']?.toString() ?? '',
+      passageiroNome: map['passageiroNome']?.toString(),
+      motoristaUid: map['motoristaUid']?.toString(),
+      origemDescricao: map['origemDescricao']?.toString() ?? '',
+      origemLat: (map['origemLat'] as num?)?.toDouble() ?? 0.0,
+      origemLng: (map['origemLng'] as num?)?.toDouble() ?? 0.0,
+      destinoDescricao: map['destinoDescricao']?.toString() ?? '',
+      destinoLat: (map['destinoLat'] as num?)?.toDouble() ?? 0.0,
+      destinoLng: (map['destinoLng'] as num?)?.toDouble() ?? 0.0,
+      status: map['status']?.toString() ?? '',
+      codigoRegiao: map['codigoRegiao']?.toString() ?? '',
+      criadoEm: (map['criadoEm'] as num?)?.toInt() ?? 0,
+      atualizadoEm: (map['atualizadoEm'] as num?)?.toInt(),
+      valor: (map['valor'] as num?)?.toDouble() ?? 0.0,
     );
   }
 }

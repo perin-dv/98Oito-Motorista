@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_database/firebase_database.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class ContaMotoristaPage extends StatefulWidget {
   const ContaMotoristaPage({super.key});
@@ -11,6 +14,44 @@ class _ContaMotoristaPageState extends State<ContaMotoristaPage> {
   bool _notificacoesCorridas = true;
   bool _notificacoesPromocoes = false;
   bool _modoEconomico = false;
+  String _nomeMotorista = 'Carregando...';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadMotoristaName();
+  }
+
+  Future<void> _loadMotoristaName() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+
+    try {
+      final snapshot = await FirebaseDatabase.instance.ref("usuarios/$uid/nome").get();
+      if (snapshot.exists && snapshot.value != null) {
+        setState(() {
+          _nomeMotorista = snapshot.value.toString();
+        });
+      } else {
+        // Fallback para displayName ou email se nome não estiver no banco
+        final user = FirebaseAuth.instance.currentUser;
+        setState(() {
+          _nomeMotorista = user?.displayName ?? 
+                          user?.email?.split('@').first ?? 
+                          'Motorista';
+        });
+      }
+    } catch (e) {
+      debugPrint('Erro ao carregar nome do motorista: $e');
+      // Fallback em caso de erro
+      final user = FirebaseAuth.instance.currentUser;
+      setState(() {
+        _nomeMotorista = user?.displayName ?? 
+                        user?.email?.split('@').first ?? 
+                        'Motorista';
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -20,11 +61,10 @@ class _ContaMotoristaPageState extends State<ContaMotoristaPage> {
         backgroundColor: const Color(0xFF6A4C93), // Roxo
         title: Row(
           children: [
-            Image.asset(
-              'assets/images/logo.png',
-              width: 32,
-              height: 32,
-              fit: BoxFit.contain,
+            const Icon(
+              Icons.person,
+              color: Colors.white,
+              size: 24,
             ),
             const SizedBox(width: 8),
             const Text(
@@ -36,6 +76,7 @@ class _ContaMotoristaPageState extends State<ContaMotoristaPage> {
             ),
           ],
         ),
+        automaticallyImplyLeading: false,
       ),
       body: SingleChildScrollView(
         child: Column(
@@ -48,13 +89,16 @@ class _ContaMotoristaPageState extends State<ContaMotoristaPage> {
                 children: [
                   Stack(
                     children: [
-                      const CircleAvatar(
+                      CircleAvatar(
                         radius: 40,
-                        backgroundColor: Color(0xFF6A4C93),
-                        child: Icon(
-                          Icons.person,
-                          size: 40,
-                          color: Colors.white,
+                        backgroundColor: const Color(0xFF6A4C93),
+                        child: Text(
+                          _nomeMotorista.isNotEmpty ? _nomeMotorista[0].toUpperCase() : 'M',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 32,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                       Positioned(
@@ -80,9 +124,9 @@ class _ContaMotoristaPageState extends State<ContaMotoristaPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          'Carlos Silva',
-                          style: TextStyle(
+                        Text(
+                          _nomeMotorista,
+                          style: const TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
                           ),
@@ -124,7 +168,7 @@ class _ContaMotoristaPageState extends State<ContaMotoristaPage> {
                   ),
                   IconButton(
                     onPressed: () => _editarPerfil(),
-                    icon: const Icon(Icons.edit),
+                    icon: const Icon(Icons.edit, color: Color(0xFF6A4C93)),
                   ),
                 ],
               ),
@@ -368,7 +412,7 @@ class _ContaMotoristaPageState extends State<ContaMotoristaPage> {
       leading: Icon(icon, color: const Color(0xFF6A4C93)),
       title: Text(title),
       subtitle: Text(subtitle),
-      trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+      trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: Color(0xFFFF6600)),
       onTap: onTap,
     );
   }
@@ -387,33 +431,23 @@ class _ContaMotoristaPageState extends State<ContaMotoristaPage> {
   }
 
   void _editarPerfil() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Funcionalidade de editar perfil em desenvolvimento')),
-    );
+    _showDialog('Editar Perfil', 'Funcionalidade para editar informações pessoais do motorista.');
   }
 
   void _editarVeiculo() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Funcionalidade de editar veículo em desenvolvimento')),
-    );
+    _showDialog('Editar Veículo', 'Funcionalidade para alterar dados do veículo cadastrado.');
   }
 
   void _verDocumentosVeiculo() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Funcionalidade de documentos do veículo em desenvolvimento')),
-    );
+    _showDialog('Documentos do Veículo', 'Visualizar e gerenciar documentos do veículo (CRLV, seguro, etc.).');
   }
 
   void _verDocumento(String tipo) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Visualizando $tipo')),
-    );
+    _showDialog('Documento: $tipo', 'Visualizar e gerenciar documento: $tipo');
   }
 
   void _verDocumentosPessoais() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Funcionalidade de documentos pessoais em desenvolvimento')),
-    );
+    _showDialog('Documentos Pessoais', 'Visualizar e gerenciar RG, CPF e outros documentos pessoais.');
   }
 
   void _refazerValidacaoFacial() {
@@ -421,51 +455,35 @@ class _ContaMotoristaPageState extends State<ContaMotoristaPage> {
   }
 
   void _configurarSaque() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Funcionalidade de configurar saque em desenvolvimento')),
-    );
+    _showMetodosSaqueDialog();
   }
 
   void _verHistoricoPagamentos() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Funcionalidade de histórico de pagamentos em desenvolvimento')),
-    );
+    _showHistoricoPagamentosDialog();
   }
 
   void _gerarDeclaracao() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Funcionalidade de declaração de renda em desenvolvimento')),
-    );
+    _showDialog('Declaração de Renda', 'Gerar comprovantes de renda para declaração do Imposto de Renda.');
   }
 
   void _abrirCentralAjuda() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Funcionalidade de central de ajuda em desenvolvimento')),
-    );
+    _showCentralAjudaDialog();
   }
 
   void _falarComSuporte() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Funcionalidade de suporte em desenvolvimento')),
-    );
+    _showSuporteDialog();
   }
 
   void _reportarProblema() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Funcionalidade de reportar problema em desenvolvimento')),
-    );
+    _showDialog('Reportar Problema', 'Relatar bugs ou problemas técnicos encontrados no aplicativo.');
   }
 
   void _verTermos() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Funcionalidade de termos de uso em desenvolvimento')),
-    );
+    _showDialog('Termos de Uso', 'Condições de uso do aplicativo 9Oito Motorista.');
   }
 
   void _verPrivacidade() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Funcionalidade de política de privacidade em desenvolvimento')),
-    );
+    _showDialog('Política de Privacidade', 'Como tratamos e protegemos seus dados pessoais.');
   }
 
   void _mostrarSobre() {
@@ -473,35 +491,29 @@ class _ContaMotoristaPageState extends State<ContaMotoristaPage> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Row(
+          title: const Row(
             children: [
-              Image.asset(
-                'assets/images/logo.png',
-                width: 32,
-                height: 32,
-                fit: BoxFit.contain,
-              ),
-              const SizedBox(width: 8),
-              const Text('9Oito Motorista'),
+              Icon(Icons.info, color: Color(0xFF6A4C93)),
+              SizedBox(width: 8),
+              Text('Sobre o 9Oito'),
             ],
           ),
           content: const Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              Text('9Oito Motorista'),
               Text('Versão: 1.0.0'),
+              SizedBox(height: 16),
+              Text('Aplicativo para motoristas parceiros da plataforma 9Oito.'),
               SizedBox(height: 8),
-              Text('Aplicativo para motoristas parceiros da 9Oito'),
-              SizedBox(height: 8),
-              Text('Desenvolvido com Flutter'),
-              SizedBox(height: 8),
-              Text('© 2024 9Oito - Todos os direitos reservados'),
+              Text('Desenvolvido com Flutter e Firebase.'),
             ],
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Fechar'),
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Fechar', style: TextStyle(color: Color(0xFF6A4C93))),
             ),
           ],
         );
@@ -518,16 +530,217 @@ class _ContaMotoristaPageState extends State<ContaMotoristaPage> {
           content: const Text('Tem certeza que deseja sair da sua conta?'),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancelar'),
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancelar', style: TextStyle(color: Colors.grey)),
             ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(context);
-                Navigator.pushReplacementNamed(context, '/login');
+            TextButton(
+              onPressed: () async {
+                await FirebaseAuth.instance.signOut();
+                if (mounted) {
+                  Navigator.of(context).pop();
+                  Navigator.pushReplacementNamed(context, '/login');
+                }
               },
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-              child: const Text('Sair'),
+              child: const Text('Sair', style: TextStyle(color: Colors.red)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showDialog(String title, String content) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text(title),
+          content: Text(content),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Fechar', style: TextStyle(color: Color(0xFF6A4C93))),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showMetodosSaqueDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Row(
+            children: [
+              Icon(Icons.payment, color: Color(0xFF6A4C93)),
+              SizedBox(width: 8),
+              Text('Métodos de Saque'),
+            ],
+          ),
+          content: const Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ListTile(
+                leading: Icon(Icons.pix, color: Color(0xFFFF6600)),
+                title: Text('PIX'),
+                subtitle: Text('Saque instantâneo'),
+                contentPadding: EdgeInsets.zero,
+              ),
+              ListTile(
+                leading: Icon(Icons.account_balance, color: Color(0xFFFF6600)),
+                title: Text('Transferência Bancária'),
+                subtitle: Text('1-2 dias úteis'),
+                contentPadding: EdgeInsets.zero,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Fechar', style: TextStyle(color: Color(0xFF6A4C93))),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showHistoricoPagamentosDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Row(
+            children: [
+              Icon(Icons.history, color: Color(0xFF6A4C93)),
+              SizedBox(width: 8),
+              Text('Histórico de Pagamentos'),
+            ],
+          ),
+          content: const Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: Icon(Icons.check_circle, color: Colors.green),
+                title: Text('R\$ 150,00'),
+                subtitle: Text('18/08/2024 - PIX'),
+                contentPadding: EdgeInsets.zero,
+              ),
+              ListTile(
+                leading: Icon(Icons.check_circle, color: Colors.green),
+                title: Text('R\$ 280,50'),
+                subtitle: Text('17/08/2024 - Transferência'),
+                contentPadding: EdgeInsets.zero,
+              ),
+              ListTile(
+                leading: Icon(Icons.check_circle, color: Colors.green),
+                title: Text('R\$ 95,75'),
+                subtitle: Text('16/08/2024 - PIX'),
+                contentPadding: EdgeInsets.zero,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Fechar', style: TextStyle(color: Color(0xFF6A4C93))),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showCentralAjudaDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Row(
+            children: [
+              Icon(Icons.help, color: Color(0xFF6A4C93)),
+              SizedBox(width: 8),
+              Text('Central de Ajuda'),
+            ],
+          ),
+          content: const Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: Icon(Icons.question_answer, color: Color(0xFFFF6600)),
+                title: Text('Como aceitar corridas?'),
+                contentPadding: EdgeInsets.zero,
+              ),
+              ListTile(
+                leading: Icon(Icons.question_answer, color: Color(0xFFFF6600)),
+                title: Text('Como sacar meus ganhos?'),
+                contentPadding: EdgeInsets.zero,
+              ),
+              ListTile(
+                leading: Icon(Icons.question_answer, color: Color(0xFFFF6600)),
+                title: Text('Problemas com o GPS'),
+                contentPadding: EdgeInsets.zero,
+              ),
+              ListTile(
+                leading: Icon(Icons.question_answer, color: Color(0xFFFF6600)),
+                title: Text('Atualizar documentos'),
+                contentPadding: EdgeInsets.zero,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Fechar', style: TextStyle(color: Color(0xFF6A4C93))),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showSuporteDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Row(
+            children: [
+              Icon(Icons.support_agent, color: Color(0xFF6A4C93)),
+              SizedBox(width: 8),
+              Text('Falar com Suporte'),
+            ],
+          ),
+          content: const Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: Icon(Icons.chat, color: Color(0xFFFF6600)),
+                title: Text('Chat Online'),
+                subtitle: Text('Disponível 24h'),
+                contentPadding: EdgeInsets.zero,
+              ),
+              ListTile(
+                leading: Icon(Icons.phone, color: Color(0xFFFF6600)),
+                title: Text('Telefone'),
+                subtitle: Text('0800-123-4567'),
+                contentPadding: EdgeInsets.zero,
+              ),
+              ListTile(
+                leading: Icon(Icons.email, color: Color(0xFFFF6600)),
+                title: Text('E-mail'),
+                subtitle: Text('suporte@9oito.com.br'),
+                contentPadding: EdgeInsets.zero,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Fechar', style: TextStyle(color: Color(0xFF6A4C93))),
             ),
           ],
         );

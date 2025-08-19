@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'documentos_veiculo_page.dart';
+import 'documentos_pessoais_page.dart';
+import 'ajuda_page.dart';
 
 class ContaMotoristaPage extends StatefulWidget {
   const ContaMotoristaPage({super.key});
@@ -14,6 +17,8 @@ class _ContaMotoristaPageState extends State<ContaMotoristaPage> {
   bool _notificacoesPromocoes = false;
   bool _modoEconomico = false;
   String _nomeMotorista = 'Carregando...';
+  String? _fotoPerfilUrl;
+  Map<String, dynamic>? _dadosUsuario;
 
   @override
   void initState() {
@@ -25,11 +30,18 @@ class _ContaMotoristaPageState extends State<ContaMotoristaPage> {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
 
-    final snapshot = await FirebaseDatabase.instance.ref("usuarios/$uid/nome").get();
-    if (snapshot.exists && snapshot.value != null) {
-      setState(() {
-        _nomeMotorista = snapshot.value.toString();
-      });
+    try {
+      final snapshot = await FirebaseDatabase.instance.ref("usuarios/$uid").get();
+      if (snapshot.exists && snapshot.value != null) {
+        final dados = Map<String, dynamic>.from(snapshot.value as Map);
+        setState(() {
+          _dadosUsuario = dados;
+          _nomeMotorista = dados['nome'] ?? 'Motorista';
+          _fotoPerfilUrl = dados['fotoValidacao'] ?? dados['fotoPerfil'];
+        });
+      }
+    } catch (e) {
+      debugPrint('Erro ao carregar dados do usuário: $e');
     }
   }
 
@@ -69,14 +81,19 @@ class _ContaMotoristaPageState extends State<ContaMotoristaPage> {
                 children: [
                   Stack(
                     children: [
-                      const CircleAvatar(
+                      CircleAvatar(
                         radius: 40,
-                        backgroundColor: Color(0xFF6A4C93),
-                        child: Icon(
-                          Icons.person,
-                          size: 40,
-                          color: Colors.white,
-                        ),
+                        backgroundColor: const Color(0xFF6A4C93),
+                        backgroundImage: _fotoPerfilUrl != null 
+                            ? NetworkImage(_fotoPerfilUrl!) 
+                            : null,
+                        child: _fotoPerfilUrl == null 
+                            ? const Icon(
+                                Icons.person,
+                                size: 40,
+                                color: Colors.white,
+                              )
+                            : null,
                       ),
                       Positioned(
                         bottom: 0,
@@ -420,8 +437,11 @@ class _ContaMotoristaPageState extends State<ContaMotoristaPage> {
   }
 
   void _verDocumentosVeiculo() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Funcionalidade de documentos do veículo em desenvolvimento')),
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const DocumentosVeiculoPage(),
+      ),
     );
   }
 
@@ -432,8 +452,11 @@ class _ContaMotoristaPageState extends State<ContaMotoristaPage> {
   }
 
   void _verDocumentosPessoais() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Funcionalidade de documentos pessoais em desenvolvimento')),
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const DocumentosPessoaisPage(),
+      ),
     );
   }
 
@@ -460,8 +483,11 @@ class _ContaMotoristaPageState extends State<ContaMotoristaPage> {
   }
 
   void _abrirCentralAjuda() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Funcionalidade de central de ajuda em desenvolvimento')),
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const AjudaPage(),
+      ),
     );
   }
 
